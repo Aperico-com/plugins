@@ -1,3 +1,8 @@
+## 0.6.5+1
+
+* Fixes picture captures causing a crash on some Huawei devices.
+
+
 ## 0.6.5
 
 * Adds ImageFormat selection for ImageStream and Video(iOS only).
@@ -15,7 +20,7 @@
 
 ## 0.6.4+2
 
-* Set ImageStreamReader listener to null to prevent stale images when streaming images. 
+* Set ImageStreamReader listener to null to prevent stale images when streaming images.
 
 ## 0.6.4+1
 
@@ -75,7 +80,7 @@ As part of implementing federated architecture and making the interface compatib
 
 Method changes in `CameraController`:
 - The `takePicture` method no longer accepts the `path` parameter, but instead returns the captured image as an instance of the `XFile` class;
-- The `startVideoRecording` method no longer accepts the `filePath`. Instead the recorded video is now returned as a `XFile` instance when the `stopVideoRecording` method completes; 
+- The `startVideoRecording` method no longer accepts the `filePath`. Instead the recorded video is now returned as a `XFile` instance when the `stopVideoRecording` method completes;
 - The `stopVideoRecording` method now returns the captured video when it completes;
 - Added the `buildPreview` method which is now used to implement the CameraPreview widget.
 
