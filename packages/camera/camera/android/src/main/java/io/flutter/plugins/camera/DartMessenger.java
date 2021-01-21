@@ -1,5 +1,7 @@
 package io.flutter.plugins.camera;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import androidx.annotation.Nullable;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -56,7 +58,25 @@ class DartMessenger {
         });
   }
 
-  void send(EventType eventType) {
+  void send(CameraEventType eventType) {
+    send(eventType, new HashMap<>());
+  }
+
+  void send(CameraEventType eventType, Map<String, Object> args) {
+    if (cameraChannel == null) {
+      return;
+    }
+    new Handler(Looper.getMainLooper())
+        .post(
+            new Runnable() {
+              @Override
+              public void run() {
+                cameraChannel.invokeMethod(eventType.method, args);
+              }
+            });
+  }
+
+  void send(DeviceEventType eventType) {
     send(eventType, new HashMap<>());
   }
 
@@ -64,6 +84,13 @@ class DartMessenger {
     if (channel == null) {
       return;
     }
-    channel.invokeMethod(eventType.toString().toLowerCase(), args);
+    new Handler(Looper.getMainLooper())
+        .post(
+            new Runnable() {
+              @Override
+              public void run() {
+                deviceChannel.invokeMethod(eventType.method, args);
+              }
+            });
   }
 }
