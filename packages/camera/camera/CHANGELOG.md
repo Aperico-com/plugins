@@ -1,3 +1,7 @@
+## 0.6.5+2
+
+* Ensure communication from JAVA to Dart is done on the main UI thread.
+
 ## 0.6.5+1
 
 * Fixes picture captures causing a crash on some Huawei devices.
