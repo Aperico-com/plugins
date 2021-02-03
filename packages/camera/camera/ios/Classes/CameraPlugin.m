@@ -332,7 +332,6 @@ static ResolutionPreset getResolutionPresetForString(NSString *preset) {
 @property(assign, nonatomic) BOOL isStreamingImages;
 @property(assign, nonatomic) ResolutionPreset resolutionPreset;
 @property(assign, nonatomic) ExposureMode exposureMode;
-@property(assign, nonatomic) FocusMode focusMode;
 @property(assign, nonatomic) FlashMode flashMode;
 @property(assign, nonatomic) UIDeviceOrientation lockedCaptureOrientation;
 @property(assign, nonatomic) CMTime lastVideoSampleTime;
@@ -379,6 +378,8 @@ NSString *const errorMethod = @"error";
     *error = localError;
     return nil;
   }
+
+  _exposureMode = ExposureModeAuto;
 
   _captureVideoOutput = [AVCaptureVideoDataOutput new];
   _captureVideoOutput.videoSettings =
@@ -944,36 +945,6 @@ NSString *const errorMethod = @"error";
   [_captureDevice unlockForConfiguration];
 }
 
-- (void)setFocusModeWithResult:(FlutterResult)result mode:(NSString *)modeStr {
-  FocusMode mode;
-  @try {
-    mode = getFocusModeForString(modeStr);
-  } @catch (NSError *e) {
-    result(getFlutterError(e));
-    return;
-  }
-  _focusMode = mode;
-  [self applyFocusMode];
-  result(nil);
-}
-
-- (void)applyFocusMode {
-  [_captureDevice lockForConfiguration:nil];
-  switch (_focusMode) {
-    case FocusModeLocked:
-      [_captureDevice setFocusMode:AVCaptureFocusModeAutoFocus];
-      break;
-    case FocusModeAuto:
-      if ([_captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
-        [_captureDevice setFocusMode:AVCaptureFocusModeContinuousAutoFocus];
-      } else {
-        [_captureDevice setFocusMode:AVCaptureFocusModeAutoFocus];
-      }
-      break;
-  }
-  [_captureDevice unlockForConfiguration];
-}
-
 - (void)setExposurePointWithResult:(FlutterResult)result x:(double)x y:(double)y {
   if (!_captureDevice.isExposurePointOfInterestSupported) {
     result([FlutterError errorWithCode:@"setExposurePointFailed"
@@ -986,21 +957,6 @@ NSString *const errorMethod = @"error";
   [_captureDevice unlockForConfiguration];
   // Retrigger auto exposure
   [self applyExposureMode];
-  result(nil);
-}
-
-- (void)setFocusPointWithResult:(FlutterResult)result x:(double)x y:(double)y {
-  if (!_captureDevice.isFocusPointOfInterestSupported) {
-    result([FlutterError errorWithCode:@"setFocusPointFailed"
-                               message:@"Device does not have focus point capabilities"
-                               details:nil]);
-    return;
-  }
-  [_captureDevice lockForConfiguration:nil];
-  [_captureDevice setFocusPointOfInterest:CGPointMake(y, 1 - x)];
-  [_captureDevice unlockForConfiguration];
-  // Retrigger auto focus
-  [self applyFocusMode];
   result(nil);
 }
 

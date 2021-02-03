@@ -1,7 +1,3 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 package io.flutter.plugins.camera;
 
 import android.os.Handler;
@@ -12,7 +8,6 @@ import io.flutter.embedding.engine.systemchannels.PlatformChannel;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugins.camera.types.ExposureMode;
-import io.flutter.plugins.camera.types.FocusMode;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,15 +56,11 @@ class DartMessenger {
       Integer previewWidth,
       Integer previewHeight,
       ExposureMode exposureMode,
-      FocusMode focusMode,
-      Boolean exposurePointSupported,
-      Boolean focusPointSupported) {
+      Boolean exposurePointSupported) {
     assert (previewWidth != null);
     assert (previewHeight != null);
     assert (exposureMode != null);
-    assert (focusMode != null);
     assert (exposurePointSupported != null);
-    assert (focusPointSupported != null);
     this.send(
         CameraEventType.INITIALIZED,
         new HashMap<String, Object>() {
@@ -77,9 +68,7 @@ class DartMessenger {
             put("previewWidth", previewWidth.doubleValue());
             put("previewHeight", previewHeight.doubleValue());
             put("exposureMode", exposureMode.toString());
-            put("focusMode", focusMode.toString());
             put("exposurePointSupported", exposurePointSupported);
-            put("focusPointSupported", focusPointSupported);
           }
         });
   }

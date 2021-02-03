@@ -1,7 +1,3 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 package io.flutter.plugins.camera;
 
 import static org.junit.Assert.assertEquals;
@@ -89,7 +85,6 @@ public class CameraRegionsTest {
     CameraRegions cr = new CameraRegions(new Size(100, 50));
     assertEquals(new Size(100, 50), cr.getMaxBoundaries());
     assertNull(cr.getAEMeteringRectangle());
-    assertNull(cr.getAFMeteringRectangle());
   }
 
   @Test
@@ -106,21 +101,5 @@ public class CameraRegionsTest {
     assertNotNull(cr.getAEMeteringRectangle());
     cr.resetAutoExposureMeteringRectangle();
     assertNull(cr.getAEMeteringRectangle());
-  }
-
-  @Test
-  public void setAutoFocusMeteringRectangleFromPoint_should_set_afMeteringRectangle_for_point() {
-    CameraRegions cr = new CameraRegions(new Size(100, 50));
-    cr.setAutoFocusMeteringRectangleFromPoint(0, 0);
-    assertEquals(new MeteringRectangle(0, 0, 10, 5, 1), cr.getAFMeteringRectangle());
-  }
-
-  @Test
-  public void resetAutoFocusMeteringRectangle_should_reset_afMeteringRectangle() {
-    CameraRegions cr = new CameraRegions(new Size(100, 50));
-    cr.setAutoFocusMeteringRectangleFromPoint(0, 0);
-    assertNotNull(cr.getAFMeteringRectangle());
-    cr.resetAutoFocusMeteringRectangle();
-    assertNull(cr.getAFMeteringRectangle());
   }
 }

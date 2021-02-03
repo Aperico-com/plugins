@@ -41,7 +41,6 @@ class CameraValue {
     bool isRecordingPaused,
     this.flashMode,
     this.exposureMode,
-    this.focusMode,
     this.exposurePointSupported,
     this.focusPointSupported,
     this.deviceOrientation,
@@ -107,9 +106,6 @@ class CameraValue {
   /// The exposure mode the camera is currently set to.
   final ExposureMode exposureMode;
 
-  /// The focus mode the camera is currently set to.
-  final FocusMode focusMode;
-
   /// Whether setting the exposure point is supported.
   final bool exposurePointSupported;
 
@@ -142,7 +138,6 @@ class CameraValue {
     bool isRecordingPaused,
     FlashMode flashMode,
     ExposureMode exposureMode,
-    FocusMode focusMode,
     bool exposurePointSupported,
     bool focusPointSupported,
     DeviceOrientation deviceOrientation,
@@ -159,7 +154,6 @@ class CameraValue {
       isRecordingPaused: isRecordingPaused ?? _isRecordingPaused,
       flashMode: flashMode ?? this.flashMode,
       exposureMode: exposureMode ?? this.exposureMode,
-      focusMode: focusMode ?? this.focusMode,
       exposurePointSupported:
           exposurePointSupported ?? this.exposurePointSupported,
       focusPointSupported: focusPointSupported ?? this.focusPointSupported,
@@ -290,12 +284,8 @@ class CameraController extends ValueNotifier<CameraValue> {
                 )),
         exposureMode: await _initializeCompleter.future
             .then((event) => event.exposureMode),
-        focusMode:
-            await _initializeCompleter.future.then((event) => event.focusMode),
         exposurePointSupported: await _initializeCompleter.future
             .then((event) => event.exposurePointSupported),
-        focusPointSupported: await _initializeCompleter.future
-            .then((event) => event.focusPointSupported),
       );
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);

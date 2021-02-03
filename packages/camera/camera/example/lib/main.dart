@@ -49,8 +49,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
   Animation<double> _flashModeControlRowAnimation;
   AnimationController _exposureModeControlRowAnimationController;
   Animation<double> _exposureModeControlRowAnimation;
-  AnimationController _focusModeControlRowAnimationController;
-  Animation<double> _focusModeControlRowAnimation;
   double _minAvailableZoom;
   double _maxAvailableZoom;
   double _currentScale = 1.0;
@@ -77,14 +75,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     );
     _exposureModeControlRowAnimation = CurvedAnimation(
       parent: _exposureModeControlRowAnimationController,
-      curve: Curves.easeInCubic,
-    );
-    _focusModeControlRowAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _focusModeControlRowAnimation = CurvedAnimation(
-      parent: _focusModeControlRowAnimationController,
       curve: Curves.easeInCubic,
     );
   }
@@ -260,11 +250,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                   controller != null ? onExposureModeButtonPressed : null,
             ),
             IconButton(
-              icon: Icon(Icons.filter_center_focus),
-              color: Colors.blue,
-              onPressed: controller != null ? onFocusModeButtonPressed : null,
-            ),
-            IconButton(
               icon: Icon(enableAudio ? Icons.volume_up : Icons.volume_mute),
               color: Colors.blue,
               onPressed: controller != null ? onAudioModeButtonPressed : null,
@@ -282,7 +267,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
         ),
         _flashModeControlRowWidget(),
         _exposureModeControlRowWidget(),
-        _focusModeControlRowWidget(),
       ],
     );
   }
@@ -348,7 +332,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
           ? Colors.orange
           : Colors.blue,
     );
-
     return SizeTransition(
       sizeFactor: _exposureModeControlRowAnimation,
       child: ClipRect(
@@ -404,59 +387,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                         : setExposureOffset,
                   ),
                   Text(_maxAvailableExposureOffset.toString()),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _focusModeControlRowWidget() {
-    final ButtonStyle styleAuto = TextButton.styleFrom(
-      primary: controller?.value?.focusMode == FocusMode.auto
-          ? Colors.orange
-          : Colors.blue,
-    );
-    final ButtonStyle styleLocked = TextButton.styleFrom(
-      primary: controller?.value?.focusMode == FocusMode.locked
-          ? Colors.orange
-          : Colors.blue,
-    );
-
-    return SizeTransition(
-      sizeFactor: _focusModeControlRowAnimation,
-      child: ClipRect(
-        child: Container(
-          color: Colors.grey.shade50,
-          child: Column(
-            children: [
-              Center(
-                child: Text("Focus Mode"),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  TextButton(
-                    child: Text('AUTO'),
-                    style: styleAuto,
-                    onPressed: controller != null
-                        ? () => onSetFocusModeButtonPressed(FocusMode.auto)
-                        : null,
-                    onLongPress: () {
-                      if (controller != null) controller.setFocusPoint(null);
-                      showInSnackBar('Resetting focus point');
-                    },
-                  ),
-                  TextButton(
-                    child: Text('LOCKED'),
-                    style: styleLocked,
-                    onPressed: controller != null
-                        ? () => onSetFocusModeButtonPressed(FocusMode.locked)
-                        : null,
-                  ),
                 ],
               ),
             ],
@@ -551,12 +481,10 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
   }
 
   void onViewFinderTap(TapDownDetails details, BoxConstraints constraints) {
-    final offset = Offset(
+    controller.setExposurePoint(Offset(
       details.localPosition.dx / constraints.maxWidth,
       details.localPosition.dy / constraints.maxHeight,
-    );
-    controller.setExposurePoint(offset);
-    controller.setFocusPoint(offset);
+    ));
   }
 
   void onNewCameraSelected(CameraDescription cameraDescription) async {
@@ -618,7 +546,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     } else {
       _flashModeControlRowAnimationController.forward();
       _exposureModeControlRowAnimationController.reverse();
-      _focusModeControlRowAnimationController.reverse();
     }
   }
 
@@ -628,17 +555,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     } else {
       _exposureModeControlRowAnimationController.forward();
       _flashModeControlRowAnimationController.reverse();
-      _focusModeControlRowAnimationController.reverse();
-    }
-  }
-
-  void onFocusModeButtonPressed() {
-    if (_focusModeControlRowAnimationController.value == 1) {
-      _focusModeControlRowAnimationController.reverse();
-    } else {
-      _focusModeControlRowAnimationController.forward();
-      _flashModeControlRowAnimationController.reverse();
-      _exposureModeControlRowAnimationController.reverse();
     }
   }
 
@@ -673,13 +589,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     setExposureMode(mode).then((_) {
       if (mounted) setState(() {});
       showInSnackBar('Exposure mode set to ${mode.toString().split('.').last}');
-    });
-  }
-
-  void onSetFocusModeButtonPressed(FocusMode mode) {
-    setFocusMode(mode).then((_) {
-      if (mounted) setState(() {});
-      showInSnackBar('Focus mode set to ${mode.toString().split('.').last}');
     });
   }
 
@@ -796,15 +705,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     });
     try {
       offset = await controller.setExposureOffset(offset);
-    } on CameraException catch (e) {
-      _showCameraException(e);
-      rethrow;
-    }
-  }
-
-  Future<void> setFocusMode(FocusMode mode) async {
-    try {
-      await controller.setFocusMode(mode);
     } on CameraException catch (e) {
       _showCameraException(e);
       rethrow;

@@ -1,7 +1,3 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 package io.flutter.plugins.camera;
 
 import static io.flutter.plugins.camera.CameraUtils.computeBestPreviewSize;
@@ -50,7 +46,6 @@ import io.flutter.plugins.camera.PictureCaptureRequest.State;
 import io.flutter.plugins.camera.media.MediaRecorderBuilder;
 import io.flutter.plugins.camera.types.ExposureMode;
 import io.flutter.plugins.camera.types.FlashMode;
-import io.flutter.plugins.camera.types.FocusMode;
 import io.flutter.plugins.camera.types.ResolutionPreset;
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry;
 import java.io.File;
@@ -98,7 +93,6 @@ public class Camera {
   private File videoRecordingFile;
   private FlashMode flashMode;
   private ExposureMode exposureMode;
-  private FocusMode focusMode;
   private PictureCaptureRequest pictureCaptureRequest;
   private CameraRegions cameraRegions;
   private int exposureOffset;
@@ -133,7 +127,6 @@ public class Camera {
     this.applicationContext = activity.getApplicationContext();
     this.flashMode = FlashMode.auto;
     this.exposureMode = ExposureMode.auto;
-    this.focusMode = FocusMode.auto;
     this.exposureOffset = 0;
 
     cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraName);
@@ -166,7 +159,7 @@ public class Camera {
           int upper = range.getUpper();
           Log.i("Camera", "[FPS Range Available] is:" + range);
           if (upper >= 10) {
-            if (fpsRange == null || upper > fpsRange.getUpper()) {
+            if (fpsRange == null || upper < fpsRange.getUpper()) {
               fpsRange = range;
             }
           }
@@ -221,9 +214,7 @@ public class Camera {
                   previewSize.getWidth(),
                   previewSize.getHeight(),
                   exposureMode,
-                  focusMode,
-                  isExposurePointSupported(),
-                  isFocusPointSupported());
+                  isExposurePointSupported());
             } catch (CameraAccessException e) {
               dartMessenger.sendCameraErrorEvent(e.getMessage());
               close();
@@ -313,7 +304,7 @@ public class Camera {
             cameraCaptureSession = session;
 
             updateFpsRange();
-            updateFocus(focusMode);
+            updateAutoFocus();
             updateFlash(flashMode);
             updateExposure(exposureMode);
 
@@ -517,7 +508,7 @@ public class Camera {
     assert (pictureCaptureRequest != null);
 
     pictureCaptureRequest.setState(PictureCaptureRequest.State.focusing);
-    lockAutoFocus(pictureCaptureCallback);
+    lockAutoFocus();
   }
 
   private void runPicturePreCapture() {
@@ -585,7 +576,7 @@ public class Camera {
     }
   }
 
-  private void lockAutoFocus(CaptureCallback callback) {
+  private void lockAutoFocus() {
     captureRequestBuilder.set(
         CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
 
@@ -596,7 +587,7 @@ public class Camera {
   private void unlockAutoFocus() {
     captureRequestBuilder.set(
         CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-    updateFocus(focusMode);
+    updateAutoFocus();
     try {
       cameraCaptureSession.capture(captureRequestBuilder.build(), null, null);
     } catch (CameraAccessException ignored) {
@@ -779,70 +770,23 @@ public class Camera {
           "setExposurePointFailed", "Device does not have exposure point capabilities", null);
       return;
     }
-    // Check if the current region boundaries are known
-    if (cameraRegions.getMaxBoundaries() == null) {
+    // Check if we are doing a reset or not
+    if (x == null || y == null) {
+      x = 0.5;
+      y = 0.5;
+    }
+    // Get the current region boundaries.
+    Size maxBoundaries = getRegionBoundaries();
+    if (maxBoundaries == null) {
       result.error("setExposurePointFailed", "Could not determine max region boundaries", null);
       return;
     }
     // Set the metering rectangle
-    if (x == null || y == null) cameraRegions.resetAutoExposureMeteringRectangle();
-    else cameraRegions.setAutoExposureMeteringRectangleFromPoint(x, y);
+    cameraRegions.setAutoExposureMeteringRectangleFromPoint(x, y);
     // Apply it
     updateExposure(exposureMode);
     refreshPreviewCaptureSession(
         () -> result.success(null), (code, message) -> result.error("CameraAccess", message, null));
-  }
-
-  public void setFocusMode(@NonNull final Result result, FocusMode mode)
-      throws CameraAccessException {
-    this.focusMode = mode;
-
-    updateFocus(mode);
-
-    switch (mode) {
-      case auto:
-        refreshPreviewCaptureSession(
-            null, (code, message) -> result.error("setFocusMode", message, null));
-        break;
-      case locked:
-        lockAutoFocus(
-            new CaptureCallback() {
-              @Override
-              public void onCaptureCompleted(
-                  @NonNull CameraCaptureSession session,
-                  @NonNull CaptureRequest request,
-                  @NonNull TotalCaptureResult result) {
-                unlockAutoFocus();
-              }
-            });
-        break;
-    }
-    result.success(null);
-  }
-
-  public void setFocusPoint(@NonNull final Result result, Double x, Double y)
-      throws CameraAccessException {
-    // Check if focus point functionality is available.
-    if (!isFocusPointSupported()) {
-      result.error("setFocusPointFailed", "Device does not have focus point capabilities", null);
-      return;
-    }
-
-    // Check if the current region boundaries are known
-    if (cameraRegions.getMaxBoundaries() == null) {
-      result.error("setFocusPointFailed", "Could not determine max region boundaries", null);
-      return;
-    }
-
-    // Set the metering rectangle
-    if (x == null || y == null) {
-      cameraRegions.resetAutoFocusMeteringRectangle();
-    } else {
-      cameraRegions.setAutoFocusMeteringRectangleFromPoint(x, y);
-    }
-
-    // Apply the new metering rectangle
-    setFocusMode(result, focusMode);
   }
 
   @TargetApi(VERSION_CODES.P)
@@ -891,14 +835,6 @@ public class Camera {
         cameraManager
             .getCameraCharacteristics(cameraDevice.getId())
             .get(CameraCharacteristics.CONTROL_MAX_REGIONS_AE);
-    return supportedRegions != null && supportedRegions > 0;
-  }
-
-  private boolean isFocusPointSupported() throws CameraAccessException {
-    Integer supportedRegions =
-        cameraManager
-            .getCameraCharacteristics(cameraDevice.getId())
-            .get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF);
     return supportedRegions != null && supportedRegions > 0;
   }
 
@@ -990,7 +926,7 @@ public class Camera {
     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fpsRange);
   }
 
-  private void updateFocus(FocusMode mode) {
+  private void updateAutoFocus() {
     if (useAutoFocus) {
       int[] modes = cameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
       // Auto focus is not supported
@@ -1001,25 +937,8 @@ public class Camera {
         captureRequestBuilder.set(
             CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
       } else {
-        // Applying auto focus
-        switch (mode) {
-          case locked:
-            captureRequestBuilder.set(
-                CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
-            break;
-          case auto:
-            captureRequestBuilder.set(
-                CaptureRequest.CONTROL_AF_MODE,
-                recordingVideo
-                    ? CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO
-                    : CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-          default:
-            break;
-        }
-        MeteringRectangle afRect = cameraRegions.getAFMeteringRectangle();
         captureRequestBuilder.set(
-            CaptureRequest.CONTROL_AF_REGIONS,
-            afRect == null ? null : new MeteringRectangle[] {afRect});
+            CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
       }
     } else {
       captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);

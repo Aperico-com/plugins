@@ -121,8 +121,6 @@ void main() {
         isTakingPicture: false,
         isStreamingImages: false,
         flashMode: FlashMode.auto,
-        exposureMode: ExposureMode.auto,
-        focusMode: FocusMode.auto,
         exposurePointSupported: true,
         focusPointSupported: true,
         deviceOrientation: DeviceOrientation.portraitUp,
