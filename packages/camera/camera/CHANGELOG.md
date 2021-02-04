@@ -1,4 +1,4 @@
-## 0.6.5+2 (0.7.0+3)
+## 0.6.5+2
 
 * Ensure communication from JAVA to Dart is done on the main UI thread.
 
